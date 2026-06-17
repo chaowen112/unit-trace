@@ -34,22 +34,28 @@ func NewServer(st *store.Store, matcher *matching.Engine, worker *imgworker.Work
 // Handler sets up and returns the HTTP handler with all routes.
 func (s *Server) Handler() http.Handler {
 	r := chi.NewRouter()
-
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(corsMiddleware)
-	r.Use(middleware.SetHeader("Content-Type", "application/json"))
 
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	// Dashboard (HTML)
+	r.Get("/", s.handleDashboard)
+	r.Get("/dashboard", s.handleDashboard)
+
+	// API (JSON)
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.SetHeader("Content-Type", "application/json"))
+
+		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+			writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		})
+		r.Post("/api/v1/listing-views", s.handleSubmitListingView)
+		r.Get("/api/v1/tracked-units", s.handleListTrackedUnits)
+		r.Get("/api/v1/tracked-units/{id}", s.handleGetTrackedUnit)
+		r.Post("/api/v1/tracked-units/{id}/notes", s.handleAddNote)
+		r.Post("/api/v1/listing-status-batch", s.handleBatchListingStatus)
+		r.Get("/api/v1/images/{sha256}", s.handleServeImage)
 	})
-
-	r.Post("/api/v1/listing-views", s.handleSubmitListingView)
-	r.Get("/api/v1/tracked-units", s.handleListTrackedUnits)
-	r.Get("/api/v1/tracked-units/{id}", s.handleGetTrackedUnit)
-	r.Post("/api/v1/tracked-units/{id}/notes", s.handleAddNote)
-	r.Post("/api/v1/listing-status-batch", s.handleBatchListingStatus)
-	r.Get("/api/v1/images/{sha256}", s.handleServeImage)
 
 	return r
 }
