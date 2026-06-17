@@ -33,9 +33,6 @@ services:
       IMAGE_DIR: ${IMAGE_DIR:-/data/images}
     volumes:
       - imagedata:/data/images
-    depends_on:
-      postgres:
-        condition: service_healthy
 
 volumes:
   pgdata:
