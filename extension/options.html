@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>UnitTrace Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #f8f8f8;
+      min-width: 320px;
+      padding: 20px;
+    }
+    h1 { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #111; }
+    label { display: block; font-weight: 500; margin-bottom: 6px; color: #444; }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+    }
+    input[type="text"]:focus { border-color: #4f7dff; box-shadow: 0 0 0 2px #e8edff; }
+    .field { margin-bottom: 16px; }
+    .hint { font-size: 12px; color: #888; margin-top: 4px; }
+    button {
+      background: #4f7dff;
+      color: white;
+      border: none;
+      padding: 9px 18px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    button:hover { background: #3a68e8; }
+    .status { margin-top: 12px; font-size: 13px; color: #555; min-height: 18px; }
+    .status.ok { color: #2a7d4f; }
+    .id-row { margin-top: 20px; padding-top: 16px; border-top: 1px solid #eee; }
+    .id-label { font-size: 12px; color: #aaa; }
+    .id-value { font-size: 11px; font-family: monospace; color: #888; word-break: break-all; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <h1>UnitTrace</h1>
+
+  <div class="field">
+    <label for="displayName">Display Name</label>
+    <input type="text" id="displayName" placeholder="e.g. Charlie" maxlength="32" />
+    <div class="hint">This name appears on shared visit history.</div>
+  </div>
+
+  <button id="saveBtn">Save</button>
+  <div class="status" id="status"></div>
+
+  <div class="id-row">
+    <div class="id-label">Client ID (auto-generated, do not share)</div>
+    <div class="id-value" id="clientId">—</div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

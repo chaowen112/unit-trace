@@ -1,0 +1,21 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # These are defaults; values in .env override them.
+      DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@postgres:5432/unittrace?sslmode=disable}
+      ADDR: ${ADDR:-:8080}
+      IMAGE_DIR: ${IMAGE_DIR:-/data/images}
+    volumes:
+      - imagedata:/data/images
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  imagedata:
