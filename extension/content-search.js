@@ -8,14 +8,19 @@
 
   function extractListingIdFromHref(href) {
     if (!href) return null;
-    const m = href.match(/\/property-listing\/(\d+)/);
-    return m ? m[1] : null;
+    // Old: /property-listing/12345678-slug
+    let m = href.match(/\/property-listing\/(\d+)/);
+    if (m) return m[1];
+    // New: /listing/slug-12345678
+    m = href.match(/\/listing\/.*?-(\d{6,})(?:[^0-9]|$)/);
+    if (m) return m[1];
+    return null;
   }
 
   // Find all listing card anchors that have a listing ID in the href
   function findListingCards() {
     const cards = new Map(); // listingId → anchor element
-    document.querySelectorAll('a[href*="/property-listing/"]').forEach((a) => {
+    document.querySelectorAll('a[href*="/listing/"], a[href*="/property-listing/"]').forEach((a) => {
       const id = extractListingIdFromHref(a.getAttribute("href"));
       if (id && !cards.has(id)) {
         cards.set(id, a);

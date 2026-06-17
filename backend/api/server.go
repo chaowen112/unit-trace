@@ -40,6 +40,10 @@ func (s *Server) Handler() http.Handler {
 	r.Use(corsMiddleware)
 	r.Use(middleware.SetHeader("Content-Type", "application/json"))
 
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	})
+
 	r.Post("/api/v1/listing-views", s.handleSubmitListingView)
 	r.Get("/api/v1/tracked-units", s.handleListTrackedUnits)
 	r.Get("/api/v1/tracked-units/{id}", s.handleGetTrackedUnit)

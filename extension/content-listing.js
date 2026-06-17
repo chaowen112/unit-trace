@@ -5,9 +5,20 @@
   "use strict";
 
   // --- Listing ID from URL ---
+  // Supports:
+  //   /property-listing/12345678-slug  → ID at start after slash
+  //   /listing/hdb-for-sale-slug-12345678  → ID is last numeric segment
 
   function extractListingId() {
-    const m = location.pathname.match(/\/property-listing\/(\d+)/);
+    const path = location.pathname;
+    // Old format: /property-listing/12345678...
+    let m = path.match(/\/property-listing\/(\d+)/);
+    if (m) return m[1];
+    // New format: /listing/...-12345678  (trailing digits)
+    m = path.match(/\/listing\/.*?-(\d{6,})(?:[^0-9]|$)/);
+    if (m) return m[1];
+    // Fallback: last numeric segment of any length >= 6
+    m = path.match(/(\d{6,})(?:[^0-9/]*)?$/);
     return m ? m[1] : null;
   }
 

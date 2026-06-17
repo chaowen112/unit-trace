@@ -1,6 +1,6 @@
 // Service worker — manages client_id persistence and acts as message relay.
 
-const BACKEND_URL = "http://localhost:8080";
+const BACKEND_URL = "https://unittrace.tet.sg";
 
 async function getIdentity() {
   const result = await chrome.storage.local.get(["client_id", "display_name"]);

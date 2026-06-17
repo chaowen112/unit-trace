@@ -291,6 +291,7 @@ func (s *Store) GetFuzzyMatchCandidates(ctx context.Context, district *string, p
 			c.FloorArea = snap.FloorArea
 			c.FloorLevelText = snap.FloorLevelText
 			c.AgentName = snap.AgentName
+			c.AddressText = snap.AddressText
 			c.Title = snap.Title
 			c.DescriptionText = snap.DescriptionText
 			c.AskingPrice = snap.AskingPrice

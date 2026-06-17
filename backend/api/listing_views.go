@@ -170,6 +170,7 @@ func (s *Server) handleSubmitListingView(w http.ResponseWriter, r *http.Request)
 			FloorArea:       req.FloorArea,
 			FloorLevelText:  req.FloorLevelText,
 			AgentName:       req.AgentName,
+			AddressText:     req.AddressText,
 			AskingPrice:     req.AskingPrice,
 			DescriptionText: req.DescriptionText,
 			ImageURLs:       req.ImageURLs,
@@ -306,17 +307,19 @@ func (s *Server) handleSubmitListingView(w http.ResponseWriter, r *http.Request)
 		newSnapshotMade = true
 	}
 
-	// Create visit record
-	_, err = s.store.CreateVisit(ctx, trackedUnitID, &snapshotID, &client.ID, req.Source, req.ListingURL, req.ListingID, capturedAt)
+	// Create visit record (deduped within 30 min window)
+	_, visitCreated, err := s.store.CreateVisit(ctx, trackedUnitID, &snapshotID, &client.ID, req.Source, req.ListingURL, req.ListingID, capturedAt)
 	if err != nil {
 		log.Printf("handleSubmitListingView: create visit: %v", err)
 		writeError(w, http.StatusInternalServerError, "visit error")
 		return
 	}
 
-	// Update unit on visit
-	if err := s.store.UpdateTrackedUnitOnVisit(ctx, trackedUnitID, client.ID, capturedAt); err != nil {
-		log.Printf("handleSubmitListingView: update unit on visit: %v", err)
+	// Only increment visit_count when a new visit row was actually inserted.
+	if visitCreated {
+		if err := s.store.UpdateTrackedUnitOnVisit(ctx, trackedUnitID, client.ID, capturedAt); err != nil {
+			log.Printf("handleSubmitListingView: update unit on visit: %v", err)
+		}
 	}
 
 	// Async image processing

@@ -6,14 +6,17 @@
   "permissions": ["storage"],
   "host_permissions": [
     "https://www.propertyguru.com.sg/*",
-    "http://localhost:8080/*"
+    "https://unittrace.tet.sg/*"
   ],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["https://www.propertyguru.com.sg/property-listing/*"],
+      "matches": [
+        "https://www.propertyguru.com.sg/listing/*",
+        "https://www.propertyguru.com.sg/property-listing/*"
+      ],
       "js": ["content-listing.js"],
       "run_at": "document_idle"
     },
@@ -23,7 +26,8 @@
         "https://www.propertyguru.com.sg/property-for-rent*",
         "https://www.propertyguru.com.sg/residential/*",
         "https://www.propertyguru.com.sg/singapore-property-for-sale*",
-        "https://www.propertyguru.com.sg/singapore-property-for-rent*"
+        "https://www.propertyguru.com.sg/singapore-property-for-rent*",
+        "https://www.propertyguru.com.sg/listing-search*"
       ],
       "js": ["content-search.js"],
       "run_at": "document_idle"

@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE TABLE IF NOT EXISTS clients (
     id              BIGSERIAL PRIMARY KEY,
-    client_id       UUID UNIQUE NOT NULL,
+    client_id       TEXT UNIQUE NOT NULL,
     display_name    TEXT NOT NULL DEFAULT 'Unknown',
     first_seen_at   TIMESTAMPTZ,
     last_seen_at    TIMESTAMPTZ,

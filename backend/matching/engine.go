@@ -16,6 +16,7 @@ type Candidate struct {
 	ProjectName     *string
 	District        *string
 	PropertyType    *string
+	AddressText     *string
 	Bedrooms        *int
 	Bathrooms       *int
 	FloorArea       *float64
@@ -39,6 +40,7 @@ type MatchRequest struct {
 	FloorArea       float64
 	FloorLevelText  string
 	AgentName       string
+	AddressText     string
 	AskingPrice     int64
 	DescriptionText string
 	ImageURLs       []string
@@ -173,80 +175,92 @@ func statusFromScore(score int) string {
 	}
 }
 
+// scoreCandidate scores a candidate against an incoming listing.
+//
+// Design: core identifying fields are HARD REQUIREMENTS — all must match or the
+// candidate is rejected outright. Only after passing do soft signals (description,
+// images, price) add confidence. This prevents coincidental matches between
+// different units that happen to share project/district/bedroom count.
+//
+// Scoring bands (unchanged from PRD):
+//   >= 90 → almost_certain_same_unit (auto-merge)
+//   75-89 → likely_relisted (auto-merge)
+//   60-74 → possible_duplicate (shown, not merged)
+//      <60 → not a match
 func scoreCandidate(req *MatchRequest, c *Candidate) (int, []string) {
-	score := 0
-	var reasons []string
+	// --- Hard requirements ---
+	// All must pass. These fields cannot change in a genuine relist.
 
-	// Same project_name (case-insensitive trim): +30
-	if c.ProjectName != nil && strings.EqualFold(strings.TrimSpace(req.ProjectName), strings.TrimSpace(*c.ProjectName)) {
-		score += 30
-		reasons = append(reasons, "same_project_name")
+	// property_type must match
+	if c.PropertyType != nil && req.PropertyType != "" {
+		if !strings.EqualFold(strings.TrimSpace(req.PropertyType), strings.TrimSpace(*c.PropertyType)) {
+			return 0, nil
+		}
 	}
 
-	// Same district: +5
-	if c.District != nil && strings.EqualFold(strings.TrimSpace(req.District), strings.TrimSpace(*c.District)) {
-		score += 5
-		reasons = append(reasons, "same_district")
+	// district must match
+	if c.District != nil && req.District != "" {
+		if !strings.EqualFold(strings.TrimSpace(req.District), strings.TrimSpace(*c.District)) {
+			return 0, nil
+		}
 	}
 
-	// Same property_type: +10
-	if c.PropertyType != nil && strings.EqualFold(strings.TrimSpace(req.PropertyType), strings.TrimSpace(*c.PropertyType)) {
-		score += 10
-		reasons = append(reasons, "same_property_type")
+	// bedrooms must match
+	if c.Bedrooms != nil && req.Bedrooms > 0 {
+		if req.Bedrooms != *c.Bedrooms {
+			return 0, nil
+		}
 	}
 
-	// Same bedrooms: +10
-	if c.Bedrooms != nil && req.Bedrooms == *c.Bedrooms {
-		score += 10
-		reasons = append(reasons, "same_bedrooms")
+	// bathrooms must match
+	if c.Bathrooms != nil && req.Bathrooms > 0 {
+		if req.Bathrooms != *c.Bathrooms {
+			return 0, nil
+		}
 	}
 
-	// Same bathrooms: +5
-	if c.Bathrooms != nil && req.Bathrooms == *c.Bathrooms {
-		score += 5
-		reasons = append(reasons, "same_bathrooms")
-	}
-
-	// floor_area within 3%: +20
+	// floor_area must be within 3%
 	if c.FloorArea != nil && *c.FloorArea > 0 && req.FloorArea > 0 {
-		diff := math.Abs(req.FloorArea-*c.FloorArea) / *c.FloorArea
-		if diff <= 0.03 {
-			score += 20
-			reasons = append(reasons, "floor_area_within_3pct")
+		if math.Abs(req.FloorArea-*c.FloorArea) / *c.FloorArea > 0.03 {
+			return 0, nil
 		}
 	}
 
-	// Same floor_level_text (case-insensitive): +10
-	if c.FloorLevelText != nil && strings.EqualFold(strings.TrimSpace(req.FloorLevelText), strings.TrimSpace(*c.FloorLevelText)) && req.FloorLevelText != "" {
-		score += 10
-		reasons = append(reasons, "same_floor_level")
-	}
-
-	// Same agent_name (case-insensitive): +5
-	if c.AgentName != nil && strings.EqualFold(strings.TrimSpace(req.AgentName), strings.TrimSpace(*c.AgentName)) && req.AgentName != "" {
-		score += 5
-		reasons = append(reasons, "same_agent_name")
-	}
-
-	// title trigram similarity >= 0.5: +5
-	if c.Title != nil && req.Title != "" {
-		sim := trigramSimilarity(req.Title, *c.Title)
-		if sim >= 0.5 {
-			score += 5
-			reasons = append(reasons, "title_trigram_match")
+	// title must be similar (trigram >= 0.4) when both are present
+	if c.Title != nil && *c.Title != "" && req.Title != "" {
+		if trigramSimilarity(req.Title, *c.Title) < 0.4 {
+			return 0, nil
 		}
 	}
+
+	// agent_name must match when both are present
+	if c.AgentName != nil && *c.AgentName != "" && req.AgentName != "" {
+		if !strings.EqualFold(strings.TrimSpace(req.AgentName), strings.TrimSpace(*c.AgentName)) {
+			return 0, nil
+		}
+	}
+
+	// address_text must be similar (trigram >= 0.4) when both are present
+	if c.AddressText != nil && *c.AddressText != "" && req.AddressText != "" {
+		if trigramSimilarity(req.AddressText, *c.AddressText) < 0.4 {
+			return 0, nil
+		}
+	}
+
+	// --- Passed all hard requirements ---
+	// Base score 60. Soft signals push it higher.
+	score := 60
+	reasons := []string{"core_fields_match"}
 
 	// description trigram similarity >= 0.4: +15
-	if c.DescriptionText != nil && req.DescriptionText != "" {
-		sim := trigramSimilarity(req.DescriptionText, *c.DescriptionText)
-		if sim >= 0.4 {
+	if c.DescriptionText != nil && *c.DescriptionText != "" && req.DescriptionText != "" {
+		if trigramSimilarity(req.DescriptionText, *c.DescriptionText) >= 0.4 {
 			score += 15
-			reasons = append(reasons, "description_trigram_match")
+			reasons = append(reasons, "description_match")
 		}
 	}
 
-	// image URL exact match (any common URL): +40
+	// image URL exact match (any shared URL): +40
 	if len(req.ImageURLs) > 0 && len(c.ImageURLs) > 0 {
 		reqSet := make(map[string]struct{}, len(req.ImageURLs))
 		for _, u := range req.ImageURLs {
@@ -255,29 +269,26 @@ func scoreCandidate(req *MatchRequest, c *Candidate) (int, []string) {
 		for _, u := range c.ImageURLs {
 			if _, ok := reqSet[u]; ok {
 				score += 40
-				reasons = append(reasons, "image_url_match")
+				reasons = append(reasons, "image_match")
 				break
 			}
 		}
 	}
 
-	// psf within 10% (if floor_area > 0): +10
-	if c.FloorArea != nil && *c.FloorArea > 0 && req.FloorArea > 0 && c.AskingPrice != nil && req.AskingPrice > 0 {
+	// psf within 10%: +10
+	if c.FloorArea != nil && *c.FloorArea > 0 && req.FloorArea > 0 &&
+		c.AskingPrice != nil && *c.AskingPrice > 0 && req.AskingPrice > 0 {
 		reqPSF := float64(req.AskingPrice) / req.FloorArea
 		cPSF := float64(*c.AskingPrice) / *c.FloorArea
-		if cPSF > 0 {
-			diff := math.Abs(reqPSF-cPSF) / cPSF
-			if diff <= 0.10 {
-				score += 10
-				reasons = append(reasons, "psf_within_10pct")
-			}
+		if math.Abs(reqPSF-cPSF)/cPSF <= 0.10 {
+			score += 10
+			reasons = append(reasons, "psf_within_10pct")
 		}
 	}
 
 	// price within 15%: +5
 	if c.AskingPrice != nil && *c.AskingPrice > 0 && req.AskingPrice > 0 {
-		diff := math.Abs(float64(req.AskingPrice)-float64(*c.AskingPrice)) / float64(*c.AskingPrice)
-		if diff <= 0.15 {
+		if math.Abs(float64(req.AskingPrice)-float64(*c.AskingPrice))/float64(*c.AskingPrice) <= 0.15 {
 			score += 5
 			reasons = append(reasons, "price_within_15pct")
 		}
