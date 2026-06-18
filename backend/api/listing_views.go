@@ -65,6 +65,7 @@ type SubmitListingViewResponse struct {
 	PossibleRelistCount int `json:"possible_relist_count"`
 
 	ClientVisitCounts []model.ClientVisitCount `json:"client_visit_counts"`
+	Notes             []*model.Note            `json:"notes"`
 	MatchReasons      []string                 `json:"match_reasons,omitempty"`
 	PossibleDupOf     *int64                   `json:"possible_dup_of,omitempty"`
 }
@@ -272,10 +273,8 @@ func (s *Server) handleSubmitListingView(w http.ResponseWriter, r *http.Request)
 			}
 		} else {
 			snapshotID = latestSnap.ID
-			// Still update seen timestamp even if content unchanged
-			if err := s.store.UpdateTrackedUnitOnSnapshot(ctx, trackedUnitID, client.ID, req.AskingPrice, capturedAt, false); err != nil {
-				log.Printf("handleSubmitListingView: update unit on snapshot (same): %v", err)
-			}
+			// Content unchanged — no new snapshot, no counter increment.
+			// last_visited_at is handled by CreateVisit + UpdateTrackedUnitOnVisit below.
 		}
 
 	} else if mi != nil && mi.score >= 60 {
@@ -336,6 +335,15 @@ func (s *Server) handleSubmitListingView(w http.ResponseWriter, r *http.Request)
 		clientVisits = []model.ClientVisitCount{}
 	}
 
+	// Get notes
+	notes, err := s.store.ListNotes(ctx, trackedUnitID)
+	if err != nil {
+		log.Printf("handleSubmitListingView: list notes: %v", err)
+	}
+	if notes == nil {
+		notes = []*model.Note{}
+	}
+
 	// Get updated unit for response fields
 	trackedUnit, err := s.store.GetTrackedUnit(ctx, trackedUnitID)
 	if err != nil {
@@ -346,6 +354,7 @@ func (s *Server) handleSubmitListingView(w http.ResponseWriter, r *http.Request)
 		TrackedUnitID:     trackedUnitID,
 		Status:            responseStatus,
 		ClientVisitCounts: clientVisits,
+		Notes:             notes,
 		PossibleDupOf:     possibleDupOf,
 	}
 

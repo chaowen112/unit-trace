@@ -77,12 +77,12 @@ type ListingSnapshot struct {
 }
 
 type Note struct {
-	ID             int64
-	TrackedUnitID  int64
-	AuthorClientID *int64
-	AuthorName     string
-	Note           string
-	CreatedAt      time.Time
+	ID             int64     `json:"id"`
+	TrackedUnitID  int64     `json:"tracked_unit_id"`
+	AuthorClientID *int64    `json:"author_client_id,omitempty"`
+	AuthorName     string    `json:"author_name"`
+	Note           string    `json:"note"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 type Image struct {

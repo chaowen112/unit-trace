@@ -320,7 +320,16 @@
   ${reasonsHTML}
 
   <div class="ut-note-section">
-    <div class="ut-section-label">Add note</div>
+    ${d.notes && d.notes.length ? `
+    <div class="ut-section-label">Notes</div>
+    <div class="ut-notes-list">
+      ${d.notes.map(n => `
+        <div class="ut-note-item">
+          <div class="ut-note-meta">${n.author_name || "?"} · ${formatDate(n.created_at)}</div>
+          <div class="ut-note-text">${n.note.replace(/</g, "&lt;")}</div>
+        </div>`).join("")}
+    </div>` : ""}
+    <div class="ut-section-label" style="margin-top:${d.notes && d.notes.length ? "10px" : "0"}">Add note</div>
     <textarea id="ut-note-input" placeholder="e.g. Agent said price is negotiable…" rows="2"></textarea>
     <button id="ut-note-save">Save note</button>
     <div id="ut-note-status"></div>
@@ -368,6 +377,10 @@
 .ut-visit-row { display: flex; justify-content: space-between; }
 .ut-reasons { font-size: 12px; color: #666; line-height: 1.5; }
 .ut-note-section { margin-top: 14px; }
+.ut-notes-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 2px; }
+.ut-note-item { background: #f7f8fa; border-radius: 6px; padding: 7px 9px; }
+.ut-note-meta { font-size: 11px; color: #999; margin-bottom: 3px; }
+.ut-note-text { font-size: 13px; color: #1a1a2e; white-space: pre-wrap; word-break: break-word; }
 #ut-note-input { width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 6px 8px; font-size: 13px; resize: vertical; font-family: inherit; }
 #ut-note-save { margin-top: 6px; background: #4f7dff; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; }
 #ut-note-save:hover { background: #3a68e8; }
